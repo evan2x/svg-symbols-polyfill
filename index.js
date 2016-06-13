@@ -48,7 +48,6 @@
           xdr.send();
         }
       },
-
       /**
        * 发起一个Ajax请求
        * @param {String} url 请求地址
