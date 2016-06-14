@@ -1,152 +1,133 @@
-
 (function(window, document) {
   'use strict';
 
-  var ua = navigator.userAgent,
-    MSBrowser = ua.match(/\b(?:MSIE\s*(?:9|10)\.0|Trident\/\d+\.\d+|Edge\/12\.(\d+))\b/i) || [],
-    UCBrowser = /UCBrowser/i.test(ua) && /(?:Android|Linux)/i.test(ua);
+  var UA = navigator.userAgent,
+    /**
+     * Empty function
+     * @type {Function}
+     */
+    noop = function() {},
+    /**
+     * 正则集合
+     * @type {Object}
+     */
+    regex = {
+      ms: /\b(?:MSIE\s*(?:9|10)\.0|Trident\/\d+\.\d+|Edge\/12\.(\d+))\b/i,
+      android: /Android/i,
+      uc: /UCBrowser/i
+    },
+    /**
+     * 匹配IE9+/Edge12
+     * @type {Array}
+     */
+    MSBrowser = UA.match(regex.ms) || [],
+    /**
+     * 检测是否为UC浏览器
+     * @type {Boolean}
+     */
+    UCBrowser = regex.uc.test(UA) && regex.android.test(UA),
+    /**
+     * 发起一个Ajax请求
+     * @param {String} url 请求地址
+     * @param {Object} options 请求参数
+     * @param {String} options.method 请求类型
+     * @param {Function} options.success 请求成功的回调函数
+     * @param {Function} options.error 请求失败的回调函数
+    */
+    request = function(url, options) {
+      if (typeof url !== 'string') {
+        throw new TypeError('URL must be a string.');
+      }
 
-  // IE9+/Edge 12/Android UC
-  if (document.addEventListener && (MSBrowser.length || MSBrowser[1] < 10547) || UCBrowser) {
-    var noop = function() {}, // eslint-disable-line no-empty-function
-      supportCredentials = 'withCredentials' in XMLHttpRequest.prototype,
-      domainRegex = /^(https?:)?\/\/((?:[\da-zA-Z]+\.)?(?:[\da-zA-Z][\da-zA-Z-]+\.)+[a-zA-Z]{2,6})/,
-      client = {
-        xhr: function(url, options) {
-          var xhr = new XMLHttpRequest(),
-            onerror = options.error;
+      options = options || {};
 
-          xhr.open(options.method, url, true);
-          xhr.setRequestHeader('Content-Type', options.contentType);
+      var onsuccess = options.success,
+        onerror = options.error;
 
-          xhr.onload = function() {
-            if (this.status >= 200 && this.status < 400) {
-              options.success.call(this, this.responseText, this);
-            } else {
-              onerror.call(this);
-            }
-          };
+      if (typeof onsuccess !== 'function') {
+        onsuccess = noop;
+      }
 
-          xhr.onerror = onerror;
-          xhr.onprogress = options.progress;
+      if (typeof onerror !== 'function') {
+        onerror = noop;
+      }
 
-          xhr.send();
-        },
-        xdr: function(url, options) {
-          var xdr = new XDomainRequest();
+      options.method = options.method || 'GET';
 
-          xdr.open(options.method, url);
-          xdr.contentType = options.contentType;
+      var xhr = new XMLHttpRequest();
 
-          xdr.onload = function() {
-            options.success.call(this, this.responseText, this);
-          };
+      xhr.open(options.method, url, true);
+      xhr.setRequestHeader('Content-Type', 'text/plain');
 
-          xdr.onerror = options.error;
-          xdr.onprogress = options.progress;
-
-          xdr.send();
-        }
-      },
-      /**
-       * 发起一个Ajax请求
-       * @param {String} url 请求地址
-       * @param {Object} options 请求参数
-       * @param {String} options.method 请求类型
-       * @param {Function} options.success 请求成功的回调函数
-       * @param {Function} options.error 请求失败的回调函数
-      */
-      request = function(url, options) {
-        if (typeof url !== 'string') {
-          throw new TypeError('URL must be a string.');
-        }
-
-        options = options || {};
-
-        if (typeof options.success !== 'function') {
-          options.success = noop;
-        }
-
-        if (typeof options.error !== 'function') {
-          options.error = noop;
-        }
-
-        if (typeof options.progress !== 'function') {
-          options.progress = noop;
-        }
-
-        options.method = options.method || 'GET';
-        options.contentType = 'text/plain';
-
-        var cors = false,
-          match = url.match(domainRegex);
-
-        // 检测请求地址是一个域名且非同域的情况下则认为是跨域请求
-        if (Array.isArray(match)) {
-          var protocol = (match[1] || '').toLowerCase(),
-            host = (match[2] || '').toLowerCase();
-
-          cors = protocol !== location.protocol || host !== location.host;
-        }
-
-        if (!cors || supportCredentials) {
-          client.xhr(url, options);
+      xhr.onload = function() {
+        if (this.status >= 200 && this.status < 400) {
+          onsuccess.call(this, this.responseText, this);
         } else {
-          client.xdr(url, options);
+          onerror.call(this);
         }
-      },
-      /**
-       * 提取页面中的SVG Symbols
-       * @return
-       *  {
-       *    '/icon-symbols.svg': {
-       *      '#backup': '[object SVGUseElement]',
-       *      '#battery': '[object SVGUseElement]'
-       *    }
-       *  }
-       */
-      extractSymbols = function() {
-        var nodeList = document.querySelectorAll('svg > use'),
-          ret = {},
-          href, url, hash, hashIndex;
+      };
+      xhr.onerror = onerror;
 
-        for (var i = 0, node; node = nodeList[i++];) {
-          href = node.getAttribute('xlink:href');
+      xhr.send();
+    },
+    /**
+     * 提取页面中的SVG Symbols
+     * @param {Element} el
+     * @return
+     *  {
+     *    '/icon-symbols.svg': {
+     *      '#backup': '[object SVGUseElement]',
+     *      '#battery': '[object SVGUseElement]'
+     *    }
+     *  }
+     */
+    extractSymbols = function(el) {
+      var nodeList = el.querySelectorAll('svg > use'),
+        ret = {},
+        href, url, hash, hashIndex;
 
-          if (href) {
-            hashIndex = href.indexOf('#');
-            url = href.slice(0, hashIndex);
-            hash = href.slice(hashIndex, href.length);
+      for (var i = 0, node; node = nodeList[i++];) {
+        href = node.getAttribute('xlink:href');
 
-            if (!ret[url]) {
-              ret[url] = {};
-            }
+        if (href) {
+          hashIndex = href.indexOf('#');
+          url = href.slice(0, hashIndex);
+          hash = href.slice(hashIndex, href.length);
 
-            if (!ret[url][hash]) {
-              ret[url][hash] = node;
-            }
+          if (!ret[url]) {
+            ret[url] = {};
+          }
+
+          if (!ret[url][hash]) {
+            ret[url][hash] = node;
           }
         }
+      }
 
-        return ret;
-      },
-      /**
-       * 插入SVG文档
-       * @param {String} fragment 文本片段
-       */
-      appendSVGDocument = function(fragment) {
-        var body = document.body,
-          container = document.createElement('div');
+      return ret;
+    },
+    /**
+     * 在页面中插入SVG文档
+     * @param {String} fragment 文本片段
+     */
+    appendSVGDocument = function(fragment) {
+      var body = document.body,
+        container = document.createElement('div');
 
-        container.style.cssText = 'position: absolute; left: -999em; top: -999em;';
-        container.innerHTML = fragment;
-        body.insertBefore(container, body.firstChild);
-      };
+      container.style.cssText = 'position: absolute; left: -999em; top: -999em;';
+      container.innerHTML = fragment;
+      body.insertBefore(container, body.firstChild);
+    },
+    /**
+     * 扫描当前节点下的SVG Symbols进行处理
+     * @param {Element}
+     */
+    scan = function(el, callback) {
+      callback = callback || noop;
 
-    // DOM Ready
-    document.addEventListener('DOMContentLoaded', function() {
-      var symbolsSVGMap = extractSymbols(),
+      var symbolsSVGMap = extractSymbols(el),
         urls = Object.keys(symbolsSVGMap),
+        counter = 0,
         handler = function(url) {
           return function(fragment) {
             appendSVGDocument(fragment);
@@ -161,6 +142,10 @@
                 node.setAttribute('xlink:href', symbol);
               }
             }
+
+            if (++counter === urls.length) {
+              callback();
+            }
           };
         };
 
@@ -169,7 +154,20 @@
           success: handler(url)
         });
       }
+    };
+
+  // IE9+/Edge 12/Android UC
+  if (document.addEventListener && (MSBrowser.length || MSBrowser[1] < 10547) || UCBrowser) {
+
+    // DOM Ready
+    document.addEventListener('DOMContentLoaded', function() {
+      scan(document.body);
     });
+
+    window.SVGSymbolsPolyfill = {
+      scan: scan,
+      version: '0.2.0'
+    }
   }
 
 })(window, document);
