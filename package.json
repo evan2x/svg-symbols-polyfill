@@ -1,6 +1,6 @@
 {
   "name": "svg-symbols-polyfill",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Lets you use external svg files within SVG <use> element",
   "main": "index.js",
   "scripts": {
