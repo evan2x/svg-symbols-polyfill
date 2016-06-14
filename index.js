@@ -8,7 +8,7 @@
      */
     noop = function() {},
     /**
-     * 正则集合
+     * Regexp object collection
      * @type {Object}
      */
     regex = {
@@ -17,12 +17,12 @@
       uc: /UCBrowser/i
     },
     /**
-     * 匹配IE9+/Edge12
+     * match IE9+/Edge12 browser
      * @type {Array}
      */
     MSBrowser = UA.match(regex.ms) || [],
     /**
-     * 检测是否为UC浏览器
+     * Check UC Browser
      * @type {Boolean}
      */
     UCBrowser = regex.uc.test(UA) && regex.android.test(UA),
@@ -166,7 +166,7 @@
 
     window.SVGSymbolsPolyfill = {
       scan: scan,
-      version: '0.2.0'
+      version: '__VERSION__'
     }
   }
 
