@@ -17,12 +17,12 @@
       uc: /UCBrowser/i
     },
     /**
-     * match IE9+/Edge12 browser
+     * 检测是否为IE9+/Edge12浏览器
      * @type {Array}
      */
     MSBrowser = UA.match(regex.ms) || [],
     /**
-     * Check UC Browser
+     * 检测是否为安卓下的UC浏览器
      * @type {Boolean}
      */
     UCBrowser = regex.uc.test(UA) && regex.android.test(UA),
