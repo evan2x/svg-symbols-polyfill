@@ -28,7 +28,7 @@
   "homepage": "https://github.com/evan2x/svg-symbols-polyfill#readme",
   "devDependencies": {
     "colors": "^1.1.2",
-    "eslint": "^2.12.0",
+    "eslint": "^6.7.2",
     "replace": "^0.3.0",
     "uglify-js": "^2.6.2"
   }
